@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧬 Capacity Tracker Dashboard — 2026-03-31</title>
+<style>
+:root { --bg: #0d1117; --card: #161b22; --border: #30363d; --text: #c9d1d9; --accent: #58a6ff; --green: #3fb950; --red: #f85149; --yellow: #d29922; --purple: #bc8cff; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: var(--bg); color: var(--text); padding: 20px; }
+h1 { color: var(--accent); font-size: 1.6em; margin-bottom: 6px; }
+.subtitle { color: #8b949e; margin-bottom: 20px; font-size: 0.9em; }
+.search { width: 100%; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 8px; font-size: 1em; margin-bottom: 16px; }
+.search::placeholder { color: #484f58; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer; font-size: 0.85em; transition: all 0.2s; }
+.filter-btn:hover, .filter-btn.active { background: var(--accent); color: #0d1117; border-color: var(--accent); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 18px; transition: border-color 0.2s; }
+.card:hover { border-color: var(--accent); }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.ticker { font-size: 1.1em; font-weight: bold; color: var(--accent); }
+.company-name { color: var(--text); font-size: 0.95em; }
+.rating { padding: 3px 10px; border-radius: 12px; font-size: 0.78em; font-weight: 600; }
+.rating-buy { background: rgba(63,185,80,0.15); color: var(--green); }
+.rating-ow { background: rgba(63,185,80,0.15); color: var(--green); }
+.rating-ew { background: rgba(210,153,34,0.15); color: var(--yellow); }
+.rating-uw { background: rgba(248,81,73,0.15); color: var(--red); }
+.rating-nr { background: rgba(139,148,158,0.15); color: #8b949e; }
+.broker-tag { font-size: 0.75em; color: #8b949e; margin-bottom: 8px; }
+.sector-tag { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72em; background: rgba(188,140,255,0.12); color: var(--purple); margin-bottom: 10px; }
+.data-section { margin-top: 10px; }
+.data-section h4 { color: var(--accent); font-size: 0.82em; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.data-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 0.85em; border-bottom: 1px solid rgba(48,54,61,0.5); }
+.data-row:last-child { border-bottom: none; }
+.data-label { color: #8b949e; }
+.data-value { color: var(--text); font-weight: 500; text-align: right; }
+.data-value.positive { color: var(--green); }
+.data-value.negative { color: var(--red); }
+.highlight { background: rgba(88,166,255,0.08); padding: 8px 12px; border-radius: 8px; margin-top: 10px; font-size: 0.82em; line-height: 1.5; border-left: 3px solid var(--accent); }
+.tp { font-size: 0.85em; color: var(--yellow); margin-top: 4px; }
+table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.85em; }
+th { color: var(--accent); font-weight: 600; background: rgba(88,166,255,0.05); }
+.summary-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.summary-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+.summary-number { font-size: 1.8em; font-weight: bold; color: var(--accent); }
+.summary-label { font-size: 0.78em; color: #8b949e; margin-top: 4px; }
+.tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+.tab { padding: 10px 20px; cursor: pointer; color: #8b949e; font-size: 0.9em; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<h1>🧬 Capacity Tracker Dashboard</h1>
+<p class="subtitle">Data from 16 sellside reports — 2026-03-31 batch | Extracted by 龍蝦小A</p>
+
+<div class="summary-cards">
+  <div class="summary-card"><div class="summary-number">16</div><div class="summary-label">Reports Processed</div></div>
+  <div class="summary-card"><div class="summary-number">15</div><div class="summary-label">Companies Covered</div></div>
+  <div class="summary-card"><div class="summary-number">8</div><div class="summary-label">Buy / OW Ratings</div></div>
+  <div class="summary-card"><div class="summary-number">7</div><div class="summary-label">Sectors</div></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('cards')">📊 Company Cards</div>
+  <div class="tab" onclick="switchTab('table')">📋 Summary Table</div>
+  <div class="tab" onclick="switchTab('capacity')">🏭 Capacity & ASP</div>
+  <div class="tab" onclick="switchTab('themes')">🔥 Key Themes</div>
+</div>
+
+<!-- CARDS TAB -->
+<div id="tab-cards" class="tab-content active">
+<input type="text" class="search" placeholder="🔍 Search by ticker, company, sector, broker..." oninput="filterCards(this.value)">
+<div class="filters">
+  <button class="filter-btn active" onclick="filterSector('all', this)">All</button>
+  <button class="filter-btn" onclick="filterSector('Automation', this)">Automation</button>
+  <button class="filter-btn" onclick="filterSector('AOI', this)">AOI/Inspection</button>
+  <button class="filter-btn" onclick="filterSector('Memory', this)">Memory</button>
+  <button class="filter-btn" onclick="filterSector('Foundry', this)">Foundry</button>
+  <button class="filter-btn" onclick="filterSector('IC Design', this)">IC Design</button>
+  <button class="filter-btn" onclick="filterSector('PCB', this)">PCB/CCL</button>
+  <button class="filter-btn" onclick="filterSector('Cable', this)">Cable/Connectivity</button>
+</div>
+<div class="grid" id="card-grid">
+
+<!-- HIWIN -->
+<div class="card" data-sector="Automation" data-search="2049 hiwin 上銀 morgan stanley automation">
+  <div class="card-header">
+    <div><span class="ticker">2049.TW</span> <span class="company-name">HIWIN 上銀</span></div>
+    <span class="rating rating-ow">⬆ OW (升評)</span>
+  </div>
+  <div class="broker-tag">Morgan Stanley | 2026-03-30</div>
+  <span class="sector-tag">Automation</span>
+  <div class="tp">🎯 TP: NT$300 (from NT$210)</div>
+  <div class="data-section">
+    <h4>📈 Financials</h4>
+    <div class="data-row"><span class="data-label">Revenue 2026e</span><span class="data-value">NT$29,637mn</span></div>
+    <div class="data-row"><span class="data-label">GM% 2026e</span><span class="data-value">31.9%</span></div>
+    <div class="data-row"><span class="data-label">OP% 2026e</span><span class="data-value">11.4%</span></div>
+    <div class="data-row"><span class="data-label">EPS 2026e/27e</span><span class="data-value">8.17 / 9.87</span></div>
+  </div>
+  <div class="data-section">
+    <h4>🏭 Capacity & ASP</h4>
+    <div class="data-row"><span class="data-label">Lead Time</span><span class="data-value positive">3-4M (was 2-2.5M)</span></div>
+    <div class="data-row"><span class="data-label">Ball Screw Ship YoY</span><span class="data-value positive">+12.4%</span></div>
+    <div class="data-row"><span class="data-label">Price Hike</span><span class="data-value positive">+7-15% (late Mar)</span></div>
+  </div>
+  <div class="highlight">🤖 Humanoid robot revenue contribution as upside risk. AI capex cycle demand driver.</div>
+</div>
+
+<!-- AirTAC -->
+<div class="card" data-sector="Automation" data-search="1590 airtac 亞德客 goldman sachs morgan stanley automation">
+  <div class="card-header">
+    <div><span class="ticker">1590.TW</span> <span class="company-name">AirTAC 亞德客</span></div>
+    <span class="rating rating-buy">Buy</span>
+  </div>
+  <div class="broker-tag">Goldman Sachs + Morgan Stanley | 2026-03-30/31</div>
+  <span class="sector-tag">Automation</span>
+  <div class="tp">🎯 GS TP: NT$1,240 | MS TP: NT$1,230</div>
+  <div class="data-section">
+    <h4>📈 Financials</h4>
+    <div class="data-row"><span class="data-label">Revenue 2026e</span><span class="data-value">NT$40,497mn</span></div>
+    <div class="data-row"><span class="data-label">EPS 2026e/27e</span><span class="data-value">52.30 / 57.91</span></div>
+  </div>
+  <div class="highlight">China March PMI 50.4 (expansion). Mid-cycle PE ~25x, currently 20x.</div>
+</div>
+
+<!-- 旺矽 -->
+<div class="card" data-sector="AOI" data-search="6223 旺矽 mpi probe card sinopac test">
+  <div class="card-header">
+    <div><span class="ticker">6223.TW</span> <span class="company-name">旺矽 MPI</span></div>
+    <span class="rating rating-nr">—</span>
+  </div>
+  <div class="broker-tag">Sinopac | 2026-03-30 (法說會 Memo)</div>
+  <span class="sector-tag">Probe Card / Test Equipment</span>
+  <div class="data-section">
+    <h4>📈 Financials</h4>
+    <div class="data-row"><span class="data-label">Revenue 2025</span><span class="data-value">NT$13,371mn (+31.5%)</span></div>
+    <div class="data-row"><span class="data-label">GM% 2025</span><span class="data-value">55.6%</span></div>
+    <div class="data-row"><span class="data-label">EPS 2025</span><span class="data-value">33.57</span></div>
+  </div>
+  <div class="data-section">
+    <h4>🏭 Capacity</h4>
+    <div class="data-row"><span class="data-label">VPC Utilization</span><span class="data-value positive">滿載 (100%)</span></div>
+    <div class="data-row"><span class="data-label">CPC B/B Ratio</span><span class="data-value positive">>1</span></div>
+    <div class="data-row"><span class="data-label">Order Visibility</span><span class="data-value">6 months</span></div>
+    <div class="data-row"><span class="data-label">CapEx</span><span class="data-value">~30億 竹北擴產</span></div>
+  </div>
+  <div class="data-section">
+    <h4>📦 Shipment Forecast (K units)</h4>
+    <div class="data-row"><span class="data-label">AI GPU 2026e/27e</span><span class="data-value">10,988 / 11,778</span></div>
+    <div class="data-row"><span class="data-label">AI ASIC 2026e/27e</span><span class="data-value">8,334 / 10,146</span></div>
+  </div>
+  <div class="highlight">MEMS probe card 大幅成長可期。Thermal/AST 設備配合 CPO 需求。</div>
+</div>
+
+<!-- Innodisk -->
+<div class="card" data-sector="Memory" data-search="5289 innodisk 宜鼎 daiwa memory ai edge">
+  <div class="card-header">
+    <div><span class="ticker">5289.TW</span> <span class="company-name">Innodisk 宜鼎</span></div>
+    <span class="rating rating-buy">Buy</span>
+  </div>
+  <div class="broker-tag">Daiwa | 2026-03-30</div>
+  <span class="sector-tag">Industrial Memory / AI Edge</span>
+  <div class="tp">🎯 TP: TWD 1,850 (from 1,385, +33.6%)</div>
+  <div class="data-section">
+    <h4>📈 Financials</h4>
+    <div class="data-row"><span class="data-label">Revenue 2026e</span><span class="data-value">NT$43,650mn</span></div>
+    <div class="data-row"><span class="data-label">GM% 2026e</span><span class="data-value">39.4%</span></div>
+    <div class="data-row"><span class="data-label">EPS 2026e/27e</span><span class="data-value">121.49 / 130.40</span></div>
+  </div>
+  <div class="data-section">
+    <h4>🏭 Capacity & ASP</h4>
+    <div class="data-row"><span class="data-label">Flash ASP YoY 26e</span><span class="data-value positive">+170%</span></div>
+    <div class="data-row"><span class="data-label">DRAM ASP YoY 26e</span><span class="data-value positive">+170%</span></div>
+    <div class="data-row"><span class="data-label">AI Rev Share 26e</span><span class="data-value positive">>30% (from 25%)</span></div>
+    <div class="data-row"><span class="data-label">3rd Plant</span><span class="data-value">Yilan (planned)</span></div>
+  </div>
+</div>
+
+<!-- 倍利科 -->
+<div class="card" data-sector="AOI" data-search="7822 倍利科 billion kgi aoi inspection cowos">
+  <div class="card-header">
+    <div><span class="ticker">7822.TW</span> <span class="company-name">倍利科 Billion</span></div>
+    <span class="rating rating-buy">Add (首次覆蓋)</span>
+  </div>
+  <div class="broker-tag">KGI | 2026-03-30</div>
+  <span class="sector-tag">AOI / Semiconductor Inspection</span>
+  <div class="tp">🎯 TP: NT$2,150 (upside 26.8%)</div>
+  <div class="data-section">
+    <h4>📈 Financials (CAGR 25-27: 74.7%)</h4>
+    <div class="data-row"><span class="data-label">Revenue 2026f/27f</span><span class="data-value">3,566 / 5,428mn</span></div>
+    <div class="data-row"><span class="data-label">GM% 2026f/27f</span><span class="data-value">58.1% / 57.1%</span></div>
+    <div class="data-row"><span class="data-label">OP% 2026f/27f</span><span class="data-value">36.4% / 40.6%</span></div>
+    <div class="data-row"><span class="data-label">EPS 2026f/27f</span><span class="data-value">25.24 / 42.72</span></div>
+  </div>
+  <div class="data-section">
+    <h4>🏭 CoWoS Capacity (TSMC)</h4>
+    <div class="data-row"><span class="data-label">End 2026 / 2027</span><span class="data-value">120K / 170K wpm</span></div>
+    <div class="data-row"><span class="data-label">Inspection需求</span><span class="data-value">10-12台 / 10K wpm</span></div>
+  </div>
+  <div class="highlight">客戶：NVIDIA (~60% CoWoS), Broadcom (~20%). V5300 PRO handles ±5mm warpage. ~50% 新設備訂單來自非晶圓廠 OSAT 客戶。</div>
+</div>
+
+<!-- 牧德 -->
+<div class="card" data-sector="AOI" data-search="3563 牧德 machvision yuanta aoi inspection semi pcb">
+  <div class="card-header">
+    <div><span class="ticker">3563.TW</span> <span class="company-name">牧德 Machvision</span></div>
+    <span class="rating rating-buy">Buy</span>
+  </div>
+  <div class="broker-tag">Yuanta | 2026-03-31</div>
+  <span class="sector-tag">AOI / Semiconductor Inspection</span>
+  <div class="tp">🎯 TP: NT$1,200</div>
+  <div class="data-section">
+    <h4>📈 Financials</h4>
+    <div class="data-row"><span class="data-label">Revenue 2026f/27f</span><span class="data-value">4,595 / 6,511mn</span></div>
+    <div class="data-row"><span class="data-label">GM% 2026f/27f</span><span class="data-value">62.1% / 67.8%</span></div>
+    <div class="data-row"><span class="data-label">OP% 2026f/27f</span><span class="data-value">42.4% / 51.5%</span></div>
+    <div class="data-row"><span class="data-label">EPS 2026f/27f</span><span class="data-value">25.22 / 42.82</span></div>
+  </div>
+  <div class="data-section">
+    <h4>🔄 Product Mix Shift</h4>
+    <div class="data-row"><span class="data-label">Semi Rev 2026→2027</span><span class="data-value positive">14% → 61%</span></div>
+    <div class="data-row"><span class="data-label">CoWoS Global 26f/27f</span><span class="data-value">140K / 190K wpm</span></div>
+  </div>
+  <div class="data-section">
+    <h4>🆕 New Products</h4>
+    <div class="data-row"><span class="data-label">Wafer AVI</span><span class="data-value">Mar26 cert → 2H26 ship</span></div>
+    <div class="data-row"><span class="data-label">6-Side Inspection</span><span class="data-value">Jun26 cert → 2027 ship</span></div>
+    <div class="data-row"><span class="data-label">Auto OM</span><span class="data-value">Jun26 → 1H27 mass</span></div>
+  </div>
+</div>
+
+<!-- MediaTek -->
+<div class="card" data-sector="IC Design" data-search="2454 mediatek 聯發科 morgan stanley ic design smartphone tpu">
+  <div class="card-header">
+    <div><span class="ticker">2454.TW</span> <span class="company-name">MediaTek 聯發科</span></div>
+    <span class="rating rating-ow">OW</span>
+  </div>
+  <div class="broker-tag">Morgan Stanley | 2026-03-31</div>
+  <span class="sector-tag">IC Design</span>
+  <div class="tp">🎯 TP: NT$1,988 (from 2,088)</div>
+  <div class="data-section">
+    <h4>📈 Financials</h4>
+    <div class="data-row"><span class="data-label">Revenue 2026e/27e</span><span class="data-value">604,838 / 930,647mn</span></div>
+    <div class="data-row"><span class="data-label">GM% 2026e</span><span class="data-value">44.3%</span></div>
+    <div class="data-row"><span class="data-label">EPS 2026e/27e</span><span class="data-value">58.61 / 117.25</span></div>
+  </div>
+  <div class="data-section">
+    <h4>📱 Smartphone Impact</h4>
+    <div class="data-row"><span class="data-label">5G Ship YoY 26e</span><span class="data-value negative">-20%</span></div>
+    <div class="data-row"><span class="data-label">Wafer Cut</span><span class="data-value negative">20-30K 4nm wafers</span></div>
+  </div>
+  <div class="highlight">Shifting wafer bookings from smartphone to AI ASIC (Google TPU). TPU production 4Q26. Google TPU 2026e: 3,600K → 2028e: 7,000K units.</div>
+</div>
+
+<!-- KYEC -->
+<div class="card" data-sector="AOI" data-search="2449 kyec 京元電 morgan stanley test osat">
+  <div class="card-header">
+    <div><span class="ticker">2449.TW</span> <span class="company-name">KYEC 京元電</span></div>
+    <span class="rating rating-ow">OW</span>
+  </div>
+  <div class="broker-tag">Morgan Stanley | 2026-03-31</div>
+  <span class="sector-tag">OSAT / Test</span>
+  <div class="tp">🎯 TP: NT$338 (from 358)</div>
+  <div class="data-section">
+    <h4>📈 Financials (25-28 Rev CAGR: 36%)</h4>
+    <div class="data-row"><span class="data-label">Revenue 2026e/27e</span><span class="data-value">48,325 / 67,496mn</span></div>
+    <div class="data-row"><span class="data-label">GM% 2026e</span><span class="data-value">40.3%</span></div>
+    <div class="data-row"><span class="data-label">EPS 2026e/27e</span><span class="data-value">9.84 / 14.45</span></div>
+    <div class="data-row"><span class="data-label">AI Rev Share 26e</span><span class="data-value positive">~40%</span></div>
+  </div>
+</div>
+
+<!-- UMC -->
+<div class="card" data-sector="Foundry" data-search="2303 umc 聯電 morgan stanley foundry">
+  <div class="card-header">
+    <div><span class="ticker">2303.TW</span> <span class="company-name">UMC 聯電</span></div>
+    <span class="rating rating-uw">UW</span>
+  </div>
+  <div class="broker-tag">Morgan Stanley | 2026-03-31</div>
+  <span class="sector-tag">Foundry</span>
+  <div class="tp">🎯 TP: NT$51.50 (from 52.50)</div>
+  <div class="data-section">
+    <h4>🏭 Utilization Rate</h4>
+    <div class="data-row"><span class="data-label">2Q/3Q/4Q26</span><span class="data-value negative">76% / 73% / 70%</span></div>
+    <div class="data-row"><span class="data-label">8-inch UTR</span><span class="data-value negative">70%</span></div>
+    <div class="data-row"><span class="data-label">Wafer ASP 26e</span><span class="data-value">US$830</span></div>
+  </div>
+  <div class="data-section">
+    <h4>📈 Financials</h4>
+    <div class="data-row"><span class="data-label">EPS 2026e/27e</span><span class="data-value">2.95 / 3.57</span></div>
+    <div class="data-row"><span class="data-label">GM% 2026e</span><span class="data-value">27.1%</span></div>
+  </div>
+</div>
+
+<!-- SMIC -->
+<div class="card" data-sector="Foundry" data-search="0981 smic 中芯 morgan stanley foundry china">
+  <div class="card-header">
+    <div><span class="ticker">0981.HK</span> <span class="company-name">SMIC 中芯</span></div>
+    <span class="rating rating-ow">OW</span>
+  </div>
+  <div class="broker-tag">Morgan Stanley | 2026-03-31</div>
+  <span class="sector-tag">Foundry</span>
+  <div class="tp">🎯 TP: HK$70 (from 80)</div>
+  <div class="data-section">
+    <h4>📈 Financials</h4>
+    <div class="data-row"><span class="data-label">Revenue 2026e</span><span class="data-value">US$10,908mn</span></div>
+    <div class="data-row"><span class="data-label">GM% 2026e/27e</span><span class="data-value">20.8% / 23.1%</span></div>
+    <div class="data-row"><span class="data-label">Wafer ASP 26e</span><span class="data-value">US$994</span></div>
+  </div>
+  <div class="highlight">China domestic AI GPU supply chain enabler. 3.1x 2026e P/B.</div>
+</div>
+
+<!-- Micron / Memory -->
+<div class="card" data-sector="Memory" data-search="mu micron gf securities memory hbm dram nand">
+  <div class="card-header">
+    <div><span class="ticker">MU</span> <span class="company-name">Micron + Memory Market</span></div>
+    <span class="rating rating-buy">Buy</span>
+  </div>
+  <div class="broker-tag">GF Securities | 2026-03-31</div>
+  <span class="sector-tag">Memory</span>
+  <div class="data-section">
+    <h4>💰 DRAM/NAND ASP Supercycle</h4>
+    <div class="data-row"><span class="data-label">DRAM $/Gb 2Q26</span><span class="data-value positive">$1.20 (was $0.30 2Q25)</span></div>
+    <div class="data-row"><span class="data-label">NAND $/GB 2Q26</span><span class="data-value positive">$0.24 (was $0.03 2Q25)</span></div>
+    <div class="data-row"><span class="data-label">DDR5 Contract 2Q26</span><span class="data-value positive">+50-60%</span></div>
+    <div class="data-row"><span class="data-label">DDR4 Contract 2Q26</span><span class="data-value positive">+15-20%</span></div>
+    <div class="data-row"><span class="data-label">2027 LTA vs 2Q26</span><span class="data-value positive">>25% upside</span></div>
+  </div>
+  <div class="data-section">
+    <h4>🏭 HBM Demand (M GB)</h4>
+    <div class="data-row"><span class="data-label">2025 / 2026 / 2027</span><span class="data-value">2,314 / 4,445 / 7,593</span></div>
+    <div class="data-row"><span class="data-label">DRAM Capacity End 26</span><span class="data-value">2.3M WPM (12")</span></div>
+    <div class="data-row"><span class="data-label">Additional by 2028</span><span class="data-value">628K WPM needed</span></div>
+  </div>
+  <div class="data-section">
+    <h4>💸 CapEx</h4>
+    <div class="data-row"><span class="data-label">Total Memory→2028</span><span class="data-value">~US$200bn</span></div>
+    <div class="data-row"><span class="data-label">WFE Additional</span><span class="data-value">US$126bn</span></div>
+    <div class="data-row"><span class="data-label">Capital Intensity</span><span class="data-value">30%+</span></div>
+  </div>
+  <div class="highlight">Micron BVPS FY27: $200, FY28: >$300. Currently ~1.3x P/B. Smartphone global shipments may fall <1bn units (from 1.23bn 2025).</div>
+</div>
+
+<!-- PCB -->
+<div class="card" data-sector="PCB" data-search="pcb ccl gf securities nvidia rubin gpu midplane emc">
+  <div class="card-header">
+    <div><span class="ticker">PCB Chain</span> <span class="company-name">PCB/CCL Industry</span></div>
+    <span class="rating rating-buy">CCL = Top Pick (2Q)</span>
+  </div>
+  <div class="broker-tag">GF Securities | 2026-03-29</div>
+  <span class="sector-tag">PCB / CCL</span>
+  <div class="data-section">
+    <h4>💰 PCB Content per GPU</h4>
+    <div class="data-row"><span class="data-label">GB300 Bianca</span><span class="data-value">$443</span></div>
+    <div class="data-row"><span class="data-label">VR200 (Rubin)</span><span class="data-value positive">$623</span></div>
+    <div class="data-row"><span class="data-label">VR300 (Rubin)</span><span class="data-value positive">$2,534</span></div>
+    <div class="data-row"><span class="data-label">LPU Rack Midplane</span><span class="data-value positive">$100,000</span></div>
+  </div>
+  <div class="data-section">
+    <h4>📈 EMC Price Hikes</h4>
+    <div class="data-row"><span class="data-label">M7+ (March)</span><span class="data-value positive">+10-15%</span></div>
+    <div class="data-row"><span class="data-label">M6↓ (March)</span><span class="data-value positive">+20-25%</span></div>
+    <div class="data-row"><span class="data-label">April 2nd Round</span><span class="data-value positive">Similar range</span></div>
+    <div class="data-row"><span class="data-label">CCL Lead Time</span><span class="data-value negative">>20wks (was 5-6)</span></div>
+  </div>
+  <div class="data-section">
+    <h4>📊 PCB TAM (RMB bn)</h4>
+    <div class="data-row"><span class="data-label">2025 / 2026e / 2027e</span><span class="data-value">28.9 / 80.3 / 163.7</span></div>
+  </div>
+  <div class="highlight">Rubin small patch manufacturing started March. MP kick-off late April/May. LPU rack $100K PCB content — 10-15K units in 2027/28.</div>
+</div>
+
+<!-- Rubin Ultra -->
+<div class="card" data-sector="PCB" data-search="rubin ultra nvidia gf securities cowop hbm4e architecture">
+  <div class="card-header">
+    <div><span class="ticker">NVIDIA</span> <span class="company-name">Rubin Ultra Design Change</span></div>
+    <span class="rating rating-nr">Industry Note</span>
+  </div>
+  <div class="broker-tag">GF Securities | 2026-03-31</div>
+  <span class="sector-tag">AI Chip Architecture</span>
+  <div class="highlight">Design change: 4-die → 2-die + (2-die)×2. HBM4E 64GB/cube. Rubin Ultra 2-die = 512GB. Kyber blade: 4× 2-die or 2× (2+2)-die. CoWoP adopted on 2×2-die version. ZDT (4958.TW) = content gainer.</div>
+</div>
+
+<!-- 萬泰科 -->
+<div class="card" data-sector="Cable" data-search="6190 萬泰科 kgi cable pcie leo satellite connectivity">
+  <div class="card-header">
+    <div><span class="ticker">6190.TW</span> <span class="company-name">萬泰科</span></div>
+    <span class="rating rating-nr">Not Rated</span>
+  </div>
+  <div class="broker-tag">KGI | 2026-03-31 (法說會 Takeaway)</div>
+  <span class="sector-tag">Cable / Connectivity</span>
+  <div class="data-section">
+    <h4>🏭 Capacity</h4>
+    <div class="data-row"><span class="data-label">PCIe Phase 1</span><span class="data-value positive">1.5-2M m/m, 100% util</span></div>
+    <div class="data-row"><span class="data-label">PCIe Phase 2</span><span class="data-value">6-8M m/m, 50% by Jun</span></div>
+  </div>
+  <div class="data-section">
+    <h4>📈 Key Numbers</h4>
+    <div class="data-row"><span class="data-label">Revenue Target 2026</span><span class="data-value">10B NTD</span></div>
+    <div class="data-row"><span class="data-label">EPS 2026f</span><span class="data-value">3.20</span></div>
+    <div class="data-row"><span class="data-label">LEO Satellite Units</span><span class="data-value positive">10M (2x YoY)</span></div>
+    <div class="data-row"><span class="data-label">PCIe 6:5 Ratio</span><span class="data-value">8:2</span></div>
+  </div>
+  <div class="highlight">PCIe 7.0 (224Gbps) under customer validation, expected to ship 2026. LEO satellite revenue to double in 2 years from 2026.</div>
+</div>
+
+<!-- Auden -->
+<div class="card" data-sector="Cable" data-search="3138 auden 正文 goldman sachs antenna leo satellite">
+  <div class="card-header">
+    <div><span class="ticker">3138.TW</span> <span class="company-name">Auden 正文</span></div>
+    <span class="rating rating-nr">Not Covered</span>
+  </div>
+  <div class="broker-tag">Goldman Sachs | 2026-03-30</div>
+  <span class="sector-tag">Antenna / Connectivity</span>
+  <div class="data-section">
+    <h4>📈 Revenue</h4>
+    <div class="data-row"><span class="data-label">2M26 YoY</span><span class="data-value positive">+15%</span></div>
+    <div class="data-row"><span class="data-label">LEO Satellite Rev</span><span class="data-value">Single digit % (2026)</span></div>
+    <div class="data-row"><span class="data-label">LEO Growth</span><span class="data-value positive">Triple digit</span></div>
+  </div>
+  <div class="highlight">Ka-band phased array antenna + DVB-S2. Joined GSMA/GSOA early 2026. MEO/GEO expansion.</div>
+</div>
+
+<!-- GigaDevice -->
+<div class="card" data-sector="Memory" data-search="603986 gigadevice 兆易創新 morgan stanley memory mcu cxmt ddr4">
+  <div class="card-header">
+    <div><span class="ticker">603986.SS</span> <span class="company-name">GigaDevice 兆易創新</span></div>
+    <span class="rating rating-ow">OW</span>
+  </div>
+  <div class="broker-tag">Morgan Stanley | 2026-03-31</div>
+  <span class="sector-tag">Memory / MCU</span>
+  <div class="tp">🎯 TP: RMB 301</div>
+  <div class="highlight">CXMT shifting DDR4 focus (from HBM/DDR5). Double-digit procurement volume growth YoY 2026. 2026 CXMT budget: RMB 5.7bn (from 1.2bn in 2025).</div>
+</div>
+
+</div><!-- grid -->
+</div><!-- cards tab -->
+
+<!-- TABLE TAB -->
+<div id="tab-table" class="tab-content">
+<table>
+<thead>
+<tr><th>Ticker</th><th>Company</th><th>Sector</th><th>Broker</th><th>Rating</th><th>TP</th><th>EPS 26e</th><th>EPS 27e</th><th>GM% 26e</th></tr>
+</thead>
+<tbody>
+<tr><td>2049.TW</td><td>HIWIN</td><td>Automation</td><td>MS</td><td style="color:#3fb950">⬆OW</td><td>300</td><td>8.17</td><td>9.87</td><td>31.9%</td></tr>
+<tr><td>1590.TW</td><td>AirTAC</td><td>Automation</td><td>GS/MS</td><td style="color:#3fb950">Buy/OW</td><td>1,240</td><td>52.30</td><td>57.91</td><td>—</td></tr>
+<tr><td>6223.TW</td><td>旺矽 MPI</td><td>Probe Card</td><td>Sinopac</td><td>—</td><td>—</td><td>—</td><td>—</td><td>55.6%</td></tr>
+<tr><td>5289.TW</td><td>Innodisk</td><td>Memory</td><td>Daiwa</td><td style="color:#3fb950">Buy</td><td>1,850</td><td>121.49</td><td>130.40</td><td>39.4%</td></tr>
+<tr><td>7822.TW</td><td>倍利科</td><td>AOI</td><td>KGI</td><td style="color:#3fb950">Add</td><td>2,150</td><td>25.24</td><td>42.72</td><td>58.1%</td></tr>
+<tr><td>3563.TW</td><td>牧德</td><td>AOI</td><td>Yuanta</td><td style="color:#3fb950">Buy</td><td>1,200</td><td>25.22</td><td>42.82</td><td>62.1%</td></tr>
+<tr><td>2454.TW</td><td>MediaTek</td><td>IC Design</td><td>MS</td><td style="color:#3fb950">OW</td><td>1,988</td><td>58.61</td><td>117.25</td><td>44.3%</td></tr>
+<tr><td>2449.TW</td><td>KYEC</td><td>OSAT/Test</td><td>MS</td><td style="color:#3fb950">OW</td><td>338</td><td>9.84</td><td>14.45</td><td>40.3%</td></tr>
+<tr><td>2303.TW</td><td>UMC</td><td>Foundry</td><td>MS</td><td style="color:#f85149">UW</td><td>51.50</td><td>2.95</td><td>3.57</td><td>27.1%</td></tr>
+<tr><td>0981.HK</td><td>SMIC</td><td>Foundry</td><td>MS</td><td style="color:#3fb950">OW</td><td>HK$70</td><td>US¢18.65</td><td>US¢26.51</td><td>20.8%</td></tr>
+<tr><td>MU</td><td>Micron</td><td>Memory</td><td>GF</td><td style="color:#3fb950">Buy</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>6190.TW</td><td>萬泰科</td><td>Cable</td><td>KGI</td><td>NR</td><td>—</td><td>3.20</td><td>—</td><td>17.2%</td></tr>
+<tr><td>3138.TW</td><td>Auden</td><td>Antenna</td><td>GS</td><td>NC</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>603986.SS</td><td>GigaDevice</td><td>Memory</td><td>MS</td><td style="color:#3fb950">OW</td><td>RMB301</td><td>—</td><td>—</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- CAPACITY TAB -->
+<div id="tab-capacity" class="tab-content">
+<h2 style="color:var(--accent);margin-bottom:16px">🏭 Capacity & ASP Tracker</h2>
+
+<h3 style="color:var(--purple);margin:16px 0 8px">CoWoS Monthly Capacity (K WPM)</h3>
+<table>
+<tr><th>Source</th><th>End 2025</th><th>End 2026</th><th>End 2027</th></tr>
+<tr><td>TSMC (Yuanta)</td><td>65</td><td>105</td><td>140</td></tr>
+<tr><td>TSMC (KGI)</td><td>—</td><td>120</td><td>170</td></tr>
+<tr><td>ASE/SPIL (Yuanta)</td><td>75</td><td>130</td><td>180</td></tr>
+<tr><td>Global Total (Yuanta)</td><td>—</td><td>140</td><td>190</td></tr>
+</table>
+
+<h3 style="color:var(--purple);margin:16px 0 8px">DRAM/NAND ASP Trajectory</h3>
+<table>
+<tr><th>Metric</th><th>2Q25</th><th>1Q26</th><th>2Q26</th><th>3Q26</th></tr>
+<tr><td>DRAM $/Gb</td><td>$0.30</td><td>$0.80</td><td style="color:#3fb950">$1.20</td><td style="color:#3fb950">$1.50</td></tr>
+<tr><td>NAND $/GB</td><td>$0.03</td><td>$0.18</td><td style="color:#3fb950">$0.24</td><td style="color:#3fb950">$0.30</td></tr>
+<tr><td>8GB+256GB Cost</td><td>$27</td><td>$97</td><td style="color:#f85149">$138</td><td style="color:#f85149">$173</td></tr>
+</table>
+
+<h3 style="color:var(--purple);margin:16px 0 8px">HBM Demand (Million GB)</h3>
+<table>
+<tr><th>2025</th><th>2026</th><th>2027</th></tr>
+<tr><td>2,314</td><td style="color:#3fb950">4,445 (+92%)</td><td style="color:#3fb950">7,593 (+71%)</td></tr>
+</table>
+
+<h3 style="color:var(--purple);margin:16px 0 8px">PCB Content per GPU ($)</h3>
+<table>
+<tr><th>Platform</th><th>CCL</th><th>PCB</th><th>Total</th></tr>
+<tr><td>GB300 Bianca</td><td>$143</td><td>$443</td><td>$586</td></tr>
+<tr><td>VR200 (Rubin)</td><td>$249</td><td>$623</td><td style="color:#3fb950">$872</td></tr>
+<tr><td>VR300 (Rubin)</td><td>$976</td><td>$2,534</td><td style="color:#3fb950">$3,510</td></tr>
+</table>
+
+<h3 style="color:var(--purple);margin:16px 0 8px">Utilization Rates</h3>
+<table>
+<tr><th>Company</th><th>Current/2Q26</th><th>3Q26</th><th>4Q26</th><th>Notes</th></tr>
+<tr><td>旺矽 VPC</td><td style="color:#3fb950">100%</td><td>—</td><td>—</td><td>B/B >1</td></tr>
+<tr><td>UMC 12"</td><td style="color:#f85149">76%</td><td style="color:#f85149">73%</td><td style="color:#f85149">70%</td><td>Declining</td></tr>
+<tr><td>UMC 8"</td><td style="color:#f85149">70%</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>萬泰科 PCIe Ph1</td><td style="color:#3fb950">100%</td><td>—</td><td>—</td><td>Phase 2 ramping</td></tr>
+</table>
+
+<h3 style="color:var(--purple);margin:16px 0 8px">Price Hikes Summary</h3>
+<table>
+<tr><th>Item</th><th>Hike</th><th>Timing</th></tr>
+<tr><td>HIWIN (Ball Screw/Linear)</td><td style="color:#3fb950">+7-15%</td><td>Late Mar / Early Apr</td></tr>
+<tr><td>EMC M7+ materials</td><td style="color:#3fb950">+10-15%</td><td>March</td></tr>
+<tr><td>EMC M6↓ materials</td><td style="color:#3fb950">+20-25%</td><td>March</td></tr>
+<tr><td>EMC All (2nd round)</td><td style="color:#3fb950">Similar</td><td>April</td></tr>
+<tr><td>DDR5 Contract</td><td style="color:#3fb950">+50-60%</td><td>2Q26</td></tr>
+<tr><td>DDR4 Contract</td><td style="color:#3fb950">+15-20%</td><td>2Q26</td></tr>
+<tr><td>Innodisk Flash/DRAM ASP</td><td style="color:#3fb950">+170% YoY</td><td>2026e</td></tr>
+</table>
+</div>
+
+<!-- THEMES TAB -->
+<div id="tab-themes" class="tab-content">
+<h2 style="color:var(--accent);margin-bottom:16px">🔥 Key Themes from This Batch</h2>
+
+<div class="card" style="margin-bottom:16px;border-left:3px solid #3fb950">
+<h3 style="color:#3fb950">1. Memory Supercycle 全面啟動</h3>
+<p style="margin-top:8px;line-height:1.7">DRAM 價格 YoY 4x (2Q25→2Q26), DDR5 合約 2Q26 再漲 50-60%。HBM 需求 2025→2027 翻 3.3x (2.3→7.6 bn GB)。全球 memory CapEx 到 2028 逼近 US$200bn。Micron BVPS FY28 >$300 (currently 1.3x P/B)。<strong>但 smartphone shipments 可能 <1bn units</strong>，memory 漲價正在擠壓手機 BOM cost。</p>
+</div>
+
+<div class="card" style="margin-bottom:16px;border-left:3px solid var(--accent)">
+<h3 style="color:var(--accent)">2. CoWoS Capacity = 軍備競賽</h3>
+<p style="margin-top:8px;line-height:1.7">TSMC CoWoS 2026→2027: 105→140K WPM。ASE/SPIL: 130→180K WPM。每 10K WPM 需要 10-12 台檢測設備 → 倍利科/牧德直接受惠。牧德半導體營收佔比從 14% (2026) 跳到 61% (2027)。倍利科 25-27 淨利 CAGR 74.7%。</p>
+</div>
+
+<div class="card" style="margin-bottom:16px;border-left:3px solid var(--purple)">
+<h3 style="color:var(--purple)">3. Rubin 時代 PCB Content 爆發</h3>
+<p style="margin-top:8px;line-height:1.7">PCB content per GPU: GB300 $443 → VR200 $623 → VR300 $2,534 (5.7x)。CCL content: $143 → $976 (6.8x)。LPU rack midplane = $100K PCB content。Rubin small patch 已開始 (March)，MP kick-off late April/May。EMC 材料連續兩輪漲價。CCL lead time 從 5-6 weeks 暴增到 >20 weeks。PCB TAM 2025→2027: RMB 28.9→163.7bn (5.7x)。</p>
+</div>
+
+<div class="card" style="margin-bottom:16px;border-left:3px solid var(--yellow)">
+<h3 style="color:var(--yellow)">4. Smartphone 寒冬 vs AI 轉進</h3>
+<p style="margin-top:8px;line-height:1.7">MS 下修 Android smartphone shipments 20-30%, global <1bn units。MediaTek 砍 20-30K 4nm wafers (15-20M chips)，但把產能轉向 Google TPU (2026e 3.6K → 2028e 7K units)。UMC 產能利用率持續下滑到 70%。DRAM/NAND 漲價進一步擠壓手機 BOM（8GB+256GB 從 $27 漲到 $173）。</p>
+</div>
+
+<div class="card" style="margin-bottom:16px;border-left:3px solid #3fb950">
+<h3 style="color:#3fb950">5. 自動化復甦信號</h3>
+<p style="margin-top:8px;line-height:1.7">China March PMI 50.4 (expansion)。HIWIN lead time 從 2-2.5M 延長到 3-4M，漲價 7-15%，MS 升評到 OW。AirTAC 目前 20x PE vs mid-cycle 25x。Humanoid robot 是潛在 upside risk。</p>
+</div>
+
+<div class="card" style="margin-bottom:16px;border-left:3px solid var(--accent)">
+<h3 style="color:var(--accent)">6. Rubin Ultra 架構變更</h3>
+<p style="margin-top:8px;line-height:1.7">從 4-die 改為 2-die + (2-die)×2。HBM4E 64GB/cube。Rubin Ultra 2-die = 512GB。CoWoP 用在 2×2-die 版本。ZDT (4958.TW) 被點名為 content gainer。</p>
+</div>
+</div>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+function filterCards(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.card[data-search]').forEach(c => {
+    c.classList.toggle('hidden', !c.getAttribute('data-search').toLowerCase().includes(q) && !c.textContent.toLowerCase().includes(q));
+  });
+}
+function filterSector(sector, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.card[data-sector]').forEach(c => {
+    if (sector === 'all') { c.classList.remove('hidden'); return; }
+    c.classList.toggle('hidden', !c.getAttribute('data-sector').toLowerCase().includes(sector.toLowerCase()) && !c.getAttribute('data-search').toLowerCase().includes(sector.toLowerCase()));
+  });
+}
+</script>
+</body>
+</html>
